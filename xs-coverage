@@ -1,0 +1,305 @@
+#!/usr/bin/perl
+
+=head1 NAME
+
+xs-coverage - show XS coverage
+
+=head1 SYNOPSIS
+
+	symbols.pl [OPTION]... xs.so libfoo...
+
+	-i, --ignore FILE         list of symbols to ignore
+	-x, --xs MODULE=PREFIX... demangle maps for XS functions (champlain_*, unique_*)
+	-p, --prefix PREFIX...    undefined symbol prefixes
+	-v, --verbose             enable verbose mode
+	--help                    print this help message
+
+Where I<xs.so> is the path to an XS library and I<libfoo> is the name of a
+dynamic shared library to which the XS library is linked.
+
+Examples:
+
+Finding the symbol coverage in the XS module Champlain which provides the
+bindings for both lichamplain.so (Champlain::* champlain_*) and
+libchamplain-gtk.so (Gtk2::Champlain* gtk_champlain_*).
+
+	xs-coverage blib/arch/auto/Champlain/Champlain.so libchamplain --xs Gtk2=gtk --prefix champlain gtk
+
+Although in the last command the options I<--xs Gtk2=gtk> can be removed as the
+application already maps the namespace I<Gtk2> to the prefix I<gtk>. Thus, the
+previous example could be simply written as:
+
+	xs-coverage blib/arch/auto/Champlain/Champlain.so libchamplain --prefix champlain gtk
+
+Finding the symbol coverage in the module Gtk2::Unique (Gtk2::Unique* unique_*):
+
+	xs-coverage blib/arch/auto/Gtk2/Unique/Unique.so libunique --prefix unique
+
+In the previous example the namespace I<Gtk2> is mapped to the empty prefix.
+This causes the symbol I<XS_Gtk2__UniqueBackend_get_screen> to be renamed to
+I<unique_backend_get_screen>.
+
+=head1 DESCRIPTION
+
+This program displays the symbols that are defined in the given libraries and
+that are not covered in the given XS module. The uncovered symbols are found
+through different heuristics.
+
+The symbols covered by the XS bindings are found by looking at the actual XS
+functions exported by the XS shared library (XS functions) and by looking at the
+symbols that are undefined (XS external calls).
+
+The dynamically shared libraries referenced by the XS library are inspected in
+order to see which symbols they export. Only shared libraries whose names match
+the given names are inspected.
+
+The symbols exported by the dynamically linked libraries and the XS library are
+compared (both the XS functions and the external calls made by the XS code).
+
+It's possible to provide a file that contains a list of symbols to ignore. In
+that case these symbols will not be reported by the program.
+
+=head2 XS symbols
+
+The program will always load the XS symbols (example:
+I<XS_Champlain__MapSource_get_y>). These function namess are then demangled and
+converted to their original C function name. The demanangling operates only on
+functions that start with the prefix I<XS_>. The module name is then transformed
+to a proper C prefix by using the XS conversion rules provided through the
+command line and the camel case names are replaced by underscore names.
+
+The conversion algorithm can be affected by providing various mapping prefixes
+through the flag I<--xs>. For instance, to map the function
+I<XS_Gtk2__ChamplainEmbed_get_view> into I<gtk_champlain_embed_get_view> the
+mapping prefix I<--xs Gtk2=gtk> has to be provided.
+
+It is also possible to remove a prefix from a C function by simply removing the
+prefix part from the command line mapping. For instance, to change
+I<XS_Gtk2__UniqueApp_send_message> to I<unique_app_send_message> simply use the
+mapping -I<--xs Gtk2=>
+
+=head2 Undefined symbols
+
+If the parameter prefix is used then the program will load all undefined symbols
+in the library that match the given prefixes and assumed that they are
+references to function calls.
+
+For finding all functions that start with the prefix I<unique> simply add the
+argument I<--prefix unique>
+
+=head1 CAVEATS
+
+This program can't detect XS functions that are aliased.
+
+=cut
+
+use strict;
+use warnings;
+
+use Getopt::Long qw(:config auto_help);
+use Pod::Usage;
+use File::Slurp qw(slurp);
+use Data::Dumper;
+
+my $NM_DEFINED = '--defined-only --extern-only';
+my $NM_UNDEFINED = '--undefined-only';
+my $VERBOSE = 0;
+
+exit main();
+
+sub main {
+
+	# Argument parsing
+	my $ignore;
+	my $maps = {};
+	my @xs_undefined;
+	GetOptions(
+		'ignore|i=s'    => \$ignore,
+		'xs|x=s%'       => \$maps,
+		'prefix|p=s{,}' => \@xs_undefined,
+		'verbose|v'     => \$VERBOSE,
+	) or pod2usage(1);
+	pod2usage(1) unless @ARGV >= 2;
+	my ($xs, @names) = @ARGV;
+
+	$maps->{Gtk2} = 'gtk' unless exists $maps->{Gtk2};
+
+
+	# Find the full paths of the libraries to process
+	my @libs = get_library_dependencies($xs, @names);
+
+
+	# Symbols to ignore
+	my %ignore;
+	if (defined $ignore) {
+		foreach my $symbol (slurp($ignore)) {
+			chomp $symbol;
+			$ignore{$symbol} = 1;
+		}
+	}
+
+
+	# The symbols exported by the C libraries
+	my %symbols = ();
+	foreach my $lib (@libs) {
+		foreach my $symbol (get_so_symbols($lib)) {
+			next if $ignore{$symbol};
+			$symbols{$symbol} = 1;
+		}
+	}
+
+
+	# Remove all symbols that have a binding
+	foreach my $symbol (get_xs_defined_symbols($xs, $maps)) {
+		delete $symbols{$symbol};
+	}
+	if (@xs_undefined) {
+		foreach my $symbol (get_xs_undefined_symbols($xs, @xs_undefined)) {
+			delete $symbols{$symbol};
+		}
+	}
+	
+	# Show all symbols that are missing coverage
+	foreach my $symbol (sort keys %symbols) {
+		print $symbol, "\n";
+	}
+
+	return 0;
+}
+
+
+#
+# Get the defined symbols from an XS library. This function keeps only the
+# symbols that start with "XS_". The symbol names are demangled back to their C
+# names.
+#
+# $maps is used for transforming the Perl module name into a C prefix. If a
+# module name can't be found in the map then it's lower case version will be
+# used instead.
+#
+sub get_xs_defined_symbols {
+	my ($file, $maps) = @_;
+	
+	my @symbols = ();
+	foreach my $xs_symbol (get_symbols($file, $NM_DEFINED)) {
+
+		# XS_Gtk2__ChamplainEmbed_get_view -> module=Gtk2, prefix=ChamplainEmbed, name=get_view
+		my ($module, $prefix, $name) = ($xs_symbol =~ /^XS_(.*?)__([^_]+)_(.*)$/) or next;
+
+		# Convert ZoomLevel -> zoom_level
+		$prefix =~ s/(.)([A-Z])/$1 . '_' . lc($2)/ge;
+		$prefix =~ s/^([A-Z])/lc($1)/e;
+
+		my $c_prefix = exists $maps->{$module} ? $maps->{$module} : lc $module;
+		
+		# Construct the symbol name
+		my $symbol = "${prefix}_${name}";
+		if ($c_prefix ne '') {
+			$symbol = "${c_prefix}_${symbol}";
+		}
+
+		push @symbols, $symbol;
+	}
+
+	return @symbols;
+}
+
+
+#
+# Get the symbols undefined by an XS library. This function keeps only the
+# symbols that start the given prefixes.
+#
+# The unused symbols are expexted to be refered because the bindings are using them.
+#
+sub get_xs_undefined_symbols {
+	my ($file, @prefixes) = @_;
+
+	my $match = @prefixes ? make_starts_with_regexp(@prefixes) : undef;
+
+	my @symbols = ();
+	foreach my $symbol (get_symbols($file, $NM_UNDEFINED)) {
+		if ($match) {
+			push @symbols, $symbol if $symbol =~ /$match/;
+		}
+		else {
+			push @symbols, $symbol;
+		}
+	}
+
+	return @symbols;
+}
+
+
+#
+# Returns the symbols defined in the given C library.
+#
+sub get_so_symbols {
+	my ($file) = @_;
+	return get_symbols($file, $NM_DEFINED);
+}
+
+
+#
+# Returns the symbols defined in the given C library.
+#
+sub get_symbols {
+	my ($file, $args) = @_;
+	
+	my $command = "nm $args --format posix $file";
+	print "$command\n" if $VERBOSE;
+	open my $handle, "$command|" or die "Can't read symbols from $file: $!";
+	my @symbols = ();
+	while (my $line = <$handle>) {
+		chomp $line;
+		my ($function) = split / /, $line, 2;
+		push @symbols, $function;
+	}
+	close $handle;
+	
+	return @symbols;
+}
+
+
+#
+# Inspects a shared library through ldd and finds the full paths of the
+# libraries that match the given names.
+#
+sub get_library_dependencies {
+	my ($file, @names) = @_;
+
+	# Match a line of output provided by ldd
+	# Input: "	libchamplain-0.3.so.1 => /usr/lib/libchamplain-0.3.so.1 (0xb7ed2000)\n"
+	my $regexp = qr(
+		^
+			\s+
+			(\S+)    # Library name
+			\s => \s # " => "
+			(\S+)    # library path
+	)x;
+
+
+	# Pattern that matches only the libraries that start with the given names
+	my $match = make_starts_with_regexp(@names);
+
+	my $command = "ldd $file";
+	open my $handle, "$command|" or die "Can't read shared library dependencies from $file: $!";
+	my @libraries = ();
+	while (my $line = <$handle>) {
+		my ($name, $path) = ($line =~ /$regexp/) or next;
+		next unless $name =~ /$match/;
+		push @libraries, $path;
+	}
+	close $handle;
+
+	return @libraries;
+}
+
+
+#
+# Creates a regexp that matches strings that start with the given words.
+#
+sub make_starts_with_regexp {
+	my (@words) = @_;
+	my $match = join '|', map { quotemeta($_) } @words;
+	return qr/^(?:$match)/;
+}

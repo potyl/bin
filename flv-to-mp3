@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+=head1 NAME
+
+flv-to-mp3 - Convert a flash movie into an MP3
+
+=head1 SYNOPSIS
+
+	flv-to-mp3 [OPTION]... input [output]
+
+	--gst     Use Gstreamer (default)
+	--ffmpeg  Use ffmpeg 
+
+Example:
+
+	flv-to-mp3 /tmp/FlashUNAE8t galliano.mp3
+
+=head1 DESCRIPTION
+
+This program converts an FLV (Flash video) into an MP3.
+
+=cut
+
+use strict;
+use warnings;
+
+use Getopt::Long qw(:config auto_help pass_through);
+use Pod::Usage;
+
+exit main();
+
+sub main {
+	pod2usage(1) unless @ARGV;
+	
+	my $backend = 'gst';
+	GetOptions(
+		'gst'    => sub {$backend = 'gst'},
+		'ffmpeg' => sub {$backend = 'ffmpeg'},
+	);
+	my ($in_file, $out_file) = @ARGV;
+
+
+	if (! defined $out_file) {
+		$out_file = $in_file;
+		$out_file =~ s/([.](flv|flash))?$/.mp3/;
+	}
+	
+	print "$in_file > $out_file\n";
+	
+	# Start the Gstreamer framework, the script will be replaced by a new process
+	if ($backend eq 'ffmpeg') {
+		print "Starting FFmpeg\n";
+		exec(
+			"ffmpeg", 
+				"-i", $in_file, 
+				"-ar", "44100", "-ab", "160", "-ac", "2",
+				"-y", $out_file
+		);
+	}
+	else {
+		print "Starting GStreamer\n";
+		exec(
+			"gst-launch", 
+				"filesrc", "location=$in_file", 
+				"!", "flvdemux", 
+				"!", "filesink", "location=$out_file"
+		);
+	}
+	
+	return 1;
+}

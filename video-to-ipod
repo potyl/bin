@@ -1,0 +1,52 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Carp;
+use File::Basename 'fileparse';
+use File::Spec;
+
+exit main();
+
+sub main {
+	#ffmpeg -i 101.avi -f mp4 -vcodec mpeg4 -b 700k -aspect 4:3 -r 23.98 -s 320x240 -acodec ac3 -ar 48000 a.mp4
+	
+	die "Usage: movie...\n" unless @ARGV;
+	
+	foreach my $movie (@ARGV) {
+		print "$movie\n";
+		convert_movie($movie);
+	}
+	
+	return 0;
+}
+
+
+sub convert_movie {
+	my ($movie, $ipod_movie) = @_;
+	croak 'Usage: convert_movie($movie, $ipod_movie?)' unless defined $movie;
+	if (! defined $ipod_movie) {
+		$ipod_movie = $movie;
+		my ($name, $path, $ext) = fileparse($movie, qr/\.[^.]*/);
+#		$ipod_movie = File::Spec->catfile($path, "$name.mp4");
+		$ipod_movie = "$name.mp4";
+	}
+	
+	
+	my @command = (
+		'ffmpeg', '-i', $movie,
+		qw(
+			-f mp4
+			-vcodec mpeg4
+			-b 700k
+			-aspect 4:3
+			-r 23.98
+			-s 320x240
+			-acodec ac3
+			-ar 48000
+		),
+		$ipod_movie
+	);
+	system(@command);
+}

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then 
+	echo usage: $0 ogg
+	exit
+fi
+
+ogg="$1"
+mp3="${ogg/.ogg/.mp3}"
+
+	
+echo "$ogg -> $mp3"
+gst-launch-0.10 filesrc location="$ogg" ! oggdemux ! vorbisdec ! audioconvert ! lame ! filesink location="$mp3"

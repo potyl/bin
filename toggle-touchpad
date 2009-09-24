@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+exit main();
+
+sub main {
+
+	my $command = 'synclient';
+
+	my $is_enabled = is_touchpad_enabled($command);
+	
+	my ($value, $action);
+	if (! defined $is_enabled) {
+		notify("Can't find the current status of the touchpad!");
+		return 1;
+	}
+	elsif ($is_enabled) {
+		($action, $value) = ("Disable", 1);
+	}
+	else {
+		($action, $value) = ("Enable", 0);
+	}
+
+	notify("$action touchpad");
+	my $arg = sprintf "TouchpadOff=%d", $value;
+	system($command, $arg);
+
+	return 0;
+}
+
+
+sub is_touchpad_enabled {
+	my ($command) = @_;
+	
+	open my $handle, "$command -l|" or die "Can't execute $command: $!";
+	my $status;
+	while (my $line = <$handle>) {
+		if ($line =~ /^ \s+ TouchpadOff \s+ = \s+ (\d+)/x) {
+			return $1 ? 0 : 1;
+		}
+	}
+	close $handle;
+
+	return undef;
+}
+
+
+sub notify {
+	my (@message) = @_;
+	system('notify-send', '--icon', 'gnome-mouse', "@message");
+}
