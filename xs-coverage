@@ -6,7 +6,7 @@ xs-coverage - show XS coverage
 
 =head1 SYNOPSIS
 
-	symbols.pl [OPTION]... xs.so libfoo...
+	xs-coverage [OPTION]... xs.so libfoo...
 
 	-i, --ignore FILE         list of symbols to ignore
 	-x, --xs MODULE=PREFIX... demangle maps for XS functions (champlain_*, unique_*)
