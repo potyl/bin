@@ -158,7 +158,7 @@ sub main {
 			delete $symbols{$symbol};
 		}
 	}
-	
+
 	# Show all symbols that are missing coverage
 	foreach my $symbol (sort keys %symbols) {
 		print $symbol, "\n";
@@ -181,7 +181,7 @@ sub get_xs_defined_symbols {
 	my ($file, $maps) = @_;
 	
 	my @symbols = ();
-	foreach my $xs_symbol (get_symbols($file, $NM_DEFINED)) {
+	foreach my $xs_symbol (get_so_symbols($file)) {
 
 		# XS_Gtk2__ChamplainEmbed_get_view -> module=Gtk2, prefix=ChamplainEmbed, name=get_view
 		my ($module, $prefix, $name) = ($xs_symbol =~ /^XS_(.*?)__([^_]+)_(.*)$/) or next;
@@ -217,7 +217,7 @@ sub get_xs_undefined_symbols {
 	my $match = @prefixes ? make_starts_with_regexp(@prefixes) : undef;
 
 	my @symbols = ();
-	foreach my $symbol (get_symbols($file, $NM_UNDEFINED)) {
+	foreach my $symbol (get_symbols(undefined => $file)) {
 		if ($match) {
 			push @symbols, $symbol if $symbol =~ /$match/;
 		}
@@ -235,7 +235,7 @@ sub get_xs_undefined_symbols {
 #
 sub get_so_symbols {
 	my ($file) = @_;
-	return get_symbols($file, $NM_DEFINED);
+	return get_symbols(defined => $file);
 }
 
 
@@ -243,8 +243,18 @@ sub get_so_symbols {
 # Returns the symbols defined in the given C library.
 #
 sub get_symbols {
-	my ($file, $args) = @_;
-	
+	return get_symbols_nm(@_);
+}
+
+
+#
+# Returns the symbols defined in the given C library by using the program 'nm'.
+#
+sub get_symbols_nm {
+	my ($type, $file) = @_;
+
+	my $args = $type eq 'defined' ? $NM_DEFINED : $NM_UNDEFINED;
+
 	my $command = "nm $args --format posix $file";
 	print "$command\n" if $VERBOSE;
 	open my $handle, "$command|" or die "Can't read symbols from $file: $!";
@@ -255,8 +265,8 @@ sub get_symbols {
 		push @symbols, $function;
 	}
 	close $handle;
-	
 	return @symbols;
+}
 }
 
 
