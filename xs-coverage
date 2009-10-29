@@ -127,7 +127,7 @@ sub main {
 
 	# Find the full paths of the libraries to process
 	my @libs = get_library_dependencies($xs, @names);
-
+	warn "No dependency matches @names for $xs\n" unless @libs;
 
 	# Symbols to ignore
 	my %ignore;
