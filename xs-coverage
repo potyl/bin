@@ -179,7 +179,7 @@ sub main {
 #
 sub get_xs_defined_symbols {
 	my ($file, $maps) = @_;
-	
+
 	my @symbols = ();
 	foreach my $xs_symbol (get_so_symbols($file)) {
 
@@ -191,7 +191,7 @@ sub get_xs_defined_symbols {
 		$prefix =~ s/^([A-Z])/lc($1)/e;
 
 		my $c_prefix = exists $maps->{$module} ? $maps->{$module} : lc $module;
-		
+
 		# Construct the symbol name
 		my $symbol = "${prefix}_${name}";
 		if ($c_prefix ne '') {
@@ -243,7 +243,7 @@ sub get_so_symbols {
 # Returns the symbols defined in the given C library.
 #
 sub get_symbols {
-	return get_symbols_nm(@_);
+	return get_symbols_readelf(@_);
 }
 
 
@@ -267,6 +267,45 @@ sub get_symbols_nm {
 	close $handle;
 	return @symbols;
 }
+
+
+#
+# Returns the symbols defined in the given C library by using the program
+# 'readelf'.
+#
+sub get_symbols_readelf {
+	my ($type, $file) = @_;
+
+	# type: 11 -> defined, UND -> undefined
+	my $wanted = $type eq 'defined' ? '11' : 'UND';
+
+	# 105: 00008980   650 FUNC    GLOBAL DEFAULT   11 XS_Gtk2__UniqueMessageData_get_workspace
+	my $regexp = qr{
+		^
+			\s+ \d+: \s+ [\da-f]+ \s+ \d+    # 105: 00008980   650
+			\s+ FUNC \s+ GLOBAL \s+ DEFAULT  # FUNC    GLOBAL DEFAULT
+			\s+  $wanted                     # type: 11 -> defined, UND -> undefined
+			\s+  ( \w+ )                     # the function name
+			\s*
+		$
+	}x;
+
+	my $command = "readelf -W -s $file";
+	print "$command\n" if $VERBOSE;
+	open my $handle, "$command|" or die "Can't read symbols from $file: $!";
+	my @symbols;
+	my %seen;
+	while (my $line = <$handle>) {
+		my ($function) = ($line =~ /$regexp/) or next;
+
+		next if $seen{$function};
+
+		$seen{$function} = 1;
+		push @symbols, $function;
+	}
+	close $handle;
+
+	return @symbols;
 }
 
 
