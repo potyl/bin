@@ -12,6 +12,7 @@ xs-coverage - show XS coverage
 	-x, --xs MODULE=PREFIX... demangle maps for XS functions (champlain_*, unique_*)
 	-p, --prefix PREFIX...    undefined symbol prefixes
 	-v, --verbose             enable verbose mode
+	-nm                       use nm for extracting symbols instead of readelf
 	--help                    print this help message
 
 Where I<xs.so> is the path to an XS library and I<libfoo> is the name of a
@@ -101,8 +102,7 @@ use Pod::Usage;
 use File::Slurp qw(slurp);
 use Data::Dumper;
 
-my $NM_DEFINED = '--defined-only --extern-only';
-my $NM_UNDEFINED = '--undefined-only';
+my $USE_READELF = 1;
 my $VERBOSE = 0;
 
 exit main();
@@ -118,6 +118,7 @@ sub main {
 		'xs|x=s%'       => \$maps,
 		'prefix|p=s{,}' => \@xs_undefined,
 		'verbose|v'     => \$VERBOSE,
+		'nm'            => sub { $USE_READELF = 0 },
 	) or pod2usage(1);
 	pod2usage(1) unless @ARGV >= 2;
 	my ($xs, @names) = @ARGV;
@@ -243,7 +244,7 @@ sub get_so_symbols {
 # Returns the symbols defined in the given C library.
 #
 sub get_symbols {
-	return get_symbols_readelf(@_);
+	return $USE_READELF ? get_symbols_readelf(@_) : get_symbols_nm(@_);
 }
 
 
@@ -253,7 +254,7 @@ sub get_symbols {
 sub get_symbols_nm {
 	my ($type, $file) = @_;
 
-	my $args = $type eq 'defined' ? $NM_DEFINED : $NM_UNDEFINED;
+	my $args = $type eq 'defined' ? '--defined-only --extern-only' : '--undefined-only';
 
 	my $command = "nm $args --format posix $file";
 	print "$command\n" if $VERBOSE;
