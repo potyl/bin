@@ -38,9 +38,10 @@ gset-command () {
 	gset-string "/apps/metacity/keybinding_commands/command_$n" "$command"
 }
 
-echo "Updating nautilus"
+echo "Nautilus"
 gset-string /apps/nautilus/preferences/show_icon_text never
 gset-bool /apps/nautilus/preferences/start_with_sidebar false
+gset-string /apps/nautilus/preferences/preview_sound never
 
 echo "Clock applet"
 gset-string /apps/panel/applets/clock_screen0/prefs/format '24-hour'
