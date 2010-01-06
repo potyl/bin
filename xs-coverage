@@ -277,15 +277,15 @@ sub get_symbols_nm {
 sub get_symbols_readelf {
 	my ($type, $file) = @_;
 
-	# type: 11 -> defined, UND -> undefined
-	my $wanted = $type eq 'defined' ? '11' : 'UND';
+	# type: \d+ -> defined, UND -> undefined
+	my $wanted = $type eq 'defined' ? qr/\d+/ : qr/UND/;
 
 	# 105: 00008980   650 FUNC    GLOBAL DEFAULT   11 XS_Gtk2__UniqueMessageData_get_workspace
 	my $regexp = qr{
 		^
 			\s+ \d+: \s+ [\da-f]+ \s+ \d+    # 105: 00008980   650
 			\s+ FUNC \s+ GLOBAL \s+ DEFAULT  # FUNC    GLOBAL DEFAULT
-			\s+  $wanted                     # type: 11 -> defined, UND -> undefined
+			\s+  $wanted                     # type
 			\s+  ( \w+ )                     # the function name
 			\s*
 		$
@@ -298,7 +298,6 @@ sub get_symbols_readelf {
 	my %seen;
 	while (my $line = <$handle>) {
 		my ($function) = ($line =~ /$regexp/) or next;
-
 		next if $seen{$function};
 
 		$seen{$function} = 1;
