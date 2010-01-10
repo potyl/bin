@@ -91,3 +91,4 @@ gset-string /apps/gedit-2/preferences/editor/wrap_mode/wrap_mode GTK_WRAP_NONE
 echo "Others"
 gset-bool /apps/totem/show_vfx false
 gset-float /apps/gwd/metacity_theme_opacity 1
+gset-bool /apps/compiz/plugins/wall/allscreens/options/allow_wraparound true
