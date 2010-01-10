@@ -75,6 +75,7 @@ gset-command 3 "<Super>slash" "gnome-terminal"
 gset-command 4 "<Super>h" "devhelp"
 gset-command 5 "<Super>t" "$HOME/bin/toggle-touchpad"
 gset-command 6 "<Super>w" "gnome-dictionary"
+gset-command 7 "<Super>c" "gnome-calculator"
 
 echo "Gedit"
 gset-bool /apps/gedit-2/preferences/editor/auto_indent/auto_indent trur
