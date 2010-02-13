@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+
+exit main() unless caller;
+
+
+sub main {
+	die "Usage: flv..." unless @ARGV;
+	
+	foreach my $file (@ARGV) {
+		my $flv = $file;
+		my $avi = $file;
+		$avi =~ s/\.flv$/.avi/i;
+		print "Converting $flv to $avi\n";
+		system('mencoder', $flv, '-ovc', 'xvid', '-oac', 'mp3lame', '-xvidencopts', 'bitrate=-700000',  '-o', $avi);
+	}
+	
+	print "Ok\n";
+	return 0;
+}
