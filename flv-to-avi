@@ -8,16 +8,43 @@ exit main() unless caller;
 
 
 sub main {
-	die "Usage: flv..." unless @ARGV;
-	
-	foreach my $file (@ARGV) {
-		my $flv = $file;
-		my $avi = $file;
-		$avi =~ s/\.flv$/.avi/i;
-		print "Converting $flv to $avi\n";
-		system('mencoder', $flv, '-ovc', 'xvid', '-oac', 'mp3lame', '-xvidencopts', 'bitrate=-700000',  '-o', $avi);
+	die "Usage: flv [avi]" unless @ARGV;
+	my ($flv, $avi) = @ARGV;
+
+	if ($flv =~ m,^http://,) {
+		my $file;
+		if (defined $avi) {
+			$file = change_extension($avi, 'flv');
+		}
+		elsif ($flv =~ /\?v=(.+)$/) {
+			$file = "$1.flv";
+		}
+		else {
+			$file = 'video.flv';
+		}
+
+		system('youtube-dl', '-o', $file, $flv);
+		$flv = $file;
 	}
-	
-	print "Ok\n";
+
+	if (! defined $avi) {
+		$avi = change_extension($flv, 'avi');
+	}
+
+	print "Converting $flv to $avi\n";
+	system('mencoder', $flv, '-ovc', 'xvid', '-oac', 'mp3lame', '-xvidencopts', 'bitrate=-700000',  '-o', $avi);
+
 	return 0;
+}
+
+
+sub download_flv {
+
+}
+
+
+sub change_extension {
+	my ($file, $ext) = @_;
+	$file =~ s/\.[^.]+$/.$ext/;
+	return $file;
 }
