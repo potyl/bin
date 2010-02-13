@@ -38,11 +38,6 @@ sub main {
 }
 
 
-sub download_flv {
-
-}
-
-
 sub change_extension {
 	my ($file, $ext) = @_;
 	$file =~ s/\.[^.]+$/.$ext/;
