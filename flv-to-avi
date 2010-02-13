@@ -23,7 +23,10 @@ sub main {
 			$file = 'video.flv';
 		}
 
-		system('youtube-dl', '-o', $file, $flv);
+		# For more video formats (fmt) see:
+		#   http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
+		#   http://blog.jimmyr.com/High_Quality_on_Youtube_11_2008.php
+		system('youtube-dl', '--format', 18, '-o', $file, $flv);
 		$flv = $file;
 	}
 
