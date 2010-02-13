@@ -16,7 +16,7 @@ sub main {
 		if (defined $avi) {
 			$file = change_extension($avi, 'flv');
 		}
-		elsif ($flv =~ /\?v=(.+)$/) {
+		elsif ($flv =~ /\?v=([^&;]+)$/) {
 			$file = "$1.flv";
 		}
 		else {
