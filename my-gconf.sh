@@ -67,6 +67,7 @@ gset-bool /apps/gnome-terminal/profiles/Default/silent_bell true
 echo "Desktop"
 #gset-string /desktop/gnome/interface/monospace_font_name "Liberation Mono 9"
 gset-string /desktop/gnome/interface/monospace_font_name "DejaVu Sans Mono 9"
+gset-string /apps/metacity/general/button_layout "menu:minimize,maximize,close"
 
 echo "Shortcuts"
 gset-command 1 "<Super>n" "nedit"
