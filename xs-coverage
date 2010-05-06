@@ -99,7 +99,6 @@ use warnings;
 
 use Getopt::Long qw(:config auto_help);
 use Pod::Usage;
-use File::Slurp qw(slurp);
 use Data::Dumper;
 
 my $USE_READELF = 1;
@@ -351,4 +350,14 @@ sub make_starts_with_regexp {
 	my (@words) = @_;
 	my $match = join '|', map { quotemeta($_) } @words;
 	return qr/^(?:$match)/;
+}
+
+
+sub slurp {
+	my ($filename) = @_;
+	open my $handle, '<', $filename or die "Can't read file $filename because $!";
+	local $?;
+	my $content = <$handle>;
+	close $handle;
+	return $content;
 }
