@@ -174,30 +174,50 @@ sub main {
 # names.
 #
 # $maps is used for transforming the Perl module name into a C prefix. If a
-# module name can't be found in the map then it's lower case version will be
+# module name can't be found in the map then its lower case version will be
 # used instead.
 #
 sub get_xs_defined_symbols {
 	my ($file, $maps) = @_;
 
-	my @symbols = ();
+	my $regexp_maps =  join '|',
+		map { quotemeta($_) }
+		sort { length($b) <=> length($a) || $a cmp $b }
+		keys %{ $maps }
+	;
+	$regexp_maps = qr/$regexp_maps/;
+
+	my @symbols;
 	foreach my $xs_symbol (get_so_symbols($file)) {
 
-		# XS_Gtk2__ChamplainEmbed_get_view -> module=Gtk2, prefix=ChamplainEmbed, name=get_view
-		my ($module, $prefix, $name) = ($xs_symbol =~ /^XS_(.*?)__([^_]+)_(.*)$/) or next;
+		# XS_Gtk2__SourceView2__PrintCompositor_set_tab_width -> prefix=Gtk2__SourceView2__PrintCompositor, method=set_tab_width
+		my ($prefix, $method) = ($xs_symbol =~ /^XS_([^_]+(?:__(?:[^_]+))+)_(.*)$/) or next;
+
+		# Get the Perl module name
+		my $module = $prefix;
+		$module =~ s/__/::/g;
+
+		# Apply the proper mappings to the module names so that a Perl module name
+		# gets mangled to the correct C prefix.
+		#
+		# Ex: maps = {Gtk2::SourceView2 => 'gtk_source'}
+		#     Gtk2::SourceView2::PrintCompositor -> gtk_source_PrintCompositor
+		#     In this example 'PrintCompositor' will be mangled correctly later.
+		if ($module =~ /^($regexp_maps)(::.*|$)/) {
+			my ($match, $rest) = ($1, $2);
+			$rest =~ s/::/_/;
+			$prefix = $maps->{$match} . $rest;
+		}
 
 		# Convert ZoomLevel -> zoom_level
 		$prefix =~ s/(.)([A-Z])/$1 . '_' . lc($2)/ge;
 		$prefix =~ s/^([A-Z])/lc($1)/e;
 
-		my $c_prefix = exists $maps->{$module} ? $maps->{$module} : lc $module;
+		$prefix =~ s/__/_/g;
+		$prefix = lc $prefix;
 
 		# Construct the symbol name
-		my $symbol = "${prefix}_${name}";
-		if ($c_prefix ne '') {
-			$symbol = "${c_prefix}_${symbol}";
-		}
-
+		my $symbol = "${prefix}_${method}";
 		push @symbols, $symbol;
 	}
 
