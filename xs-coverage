@@ -377,7 +377,7 @@ sub slurp {
 	my ($filename) = @_;
 	open my $handle, '<', $filename or die "Can't read file $filename because $!";
 	local $?;
-	my $content = <$handle>;
+	my @content = <$handle>;
 	close $handle;
-	return $content;
+	return @content;
 }
