@@ -36,6 +36,10 @@ Finding the symbol coverage in the module Gtk2::Unique (Gtk2::Unique* unique_*):
 
 	xs-coverage blib/arch/auto/Gtk2/Unique/Unique.so libunique --prefix unique
 
+Finding the symbol coverage in the module Gtk2::SourceView2 (Gtk2::Unique* unique_*):
+
+	xs-coverage blib/arch/auto/Gtk2/SourceView2/SourceView2.so libgtksourceview-2 -xs Gtk2::SourceView2=gtk_source
+
 In the previous example the namespace I<Gtk2> is mapped to the empty prefix.
 This causes the symbol I<XS_Gtk2__UniqueBackend_get_screen> to be renamed to
 I<unique_backend_get_screen>.
