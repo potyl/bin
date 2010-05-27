@@ -207,7 +207,7 @@ sub get_xs_defined_symbols {
 		# Ex: maps = {Gtk2::SourceView2 => 'gtk_source'}
 		#     Gtk2::SourceView2::PrintCompositor -> gtk_source_PrintCompositor
 		#     In this example 'PrintCompositor' will be mangled correctly later.
-		if ($module =~ /^($regexp_maps)(::.*|$)/) {
+		if ($module =~ /^($regexp_maps)(.*)$/) {
 			my ($match, $rest) = ($1, $2);
 			$rest =~ s/::/_/;
 			$prefix = $maps->{$match} . $rest;
