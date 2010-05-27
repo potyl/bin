@@ -34,9 +34,9 @@ previous example could be simply written as:
 
 Finding the symbol coverage in the module Gtk2::Unique (Gtk2::Unique* unique_*):
 
-	xs-coverage blib/arch/auto/Gtk2/Unique/Unique.so libunique --prefix unique
+	xs-coverage blib/arch/auto/Gtk2/Unique/Unique.so libunique --xs Gtk2::Unique=unique --ignore .xs-coverage.ignore
 
-Finding the symbol coverage in the module Gtk2::SourceView2 (Gtk2::Unique* unique_*):
+Finding the symbol coverage in the module Gtk2::SourceView2 (Gtk2::SourceView2* gtk_source_*):
 
 	xs-coverage blib/arch/auto/Gtk2/SourceView2/SourceView2.so libgtksourceview-2 -xs Gtk2::SourceView2=gtk_source
 
