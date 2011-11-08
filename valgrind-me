@@ -1,0 +1,152 @@
+#!/usr/bin/env perl
+
+=head1 NAME
+
+valgrind-me - Run valgrind and show only the project's errors
+
+=head1 SYNOPSIS
+
+valgrind.pl [OPTION] --match MATCH COMMAND [ARGS]...
+
+    -h, --help         print this help message
+    -m, --match MATCH  the name to match
+
+Simple usage:
+
+    valgrind-me --match XS__JavaScriptCore__ perl -Mblib t/context.t
+
+=head1 DESCRIPTION
+
+This script is a simple wrapper over the command I<valgrind> that simply prints
+errors detected by valgrind only if the stack trace matches the given rule.
+
+=cut
+
+use strict;
+use warnings;
+use Data::Dumper;
+
+use Getopt::Long qw(:config auto_help pass_through);
+use Pod::Usage;
+use POSIX qw(_exit);
+
+
+sub main {
+
+    local $| = 1;
+
+    GetOptions(
+        'm|match=s' => \my $match,
+    ) or pod2usage(1);
+    die "Parameter --match is mandatory\n" unless defined $match;
+
+
+    my @command = @ARGV or pod2usage(1);
+
+
+    # pipe & fork
+    pipe my $pipe_read, my $pipe_write or die "Can't open pipe: $!";
+
+    my $pid = fork();
+    if (! defined $pid) {
+        die "Can't fork: $!";
+    }
+    elsif ($pid == 0) {
+        # Child process (calls valgrind)
+        close $pipe_read;
+        select($pipe_write);
+        exec_valgrind($pipe_write, @command);
+        _exit 0;
+    }
+
+    # Parent process (reads the output of valgrind)
+    close $pipe_write;
+    parse_valgrind_output($pipe_read, $match);
+    waitpid $pid, 0;
+
+    return 0;
+}
+
+
+sub parse_valgrind_output {
+    my ($handle, $match) = @_;
+
+    my $match_regexp = qr/$match/o;
+
+    my @warnings;
+    while (my $line = <$handle>) {
+        if ($line =~ /^==[0-9]+==/) {
+            push @warnings, $line;
+            next;
+        }
+
+        if ($line ne "{\n") {
+            print $line;
+            next;
+        }
+        
+        my $message = <$handle>;
+        my $valgrind_check = <$handle>;
+        foreach my $header ($message, $valgrind_check) {
+            chomp $header;
+            $header =~ s/^\s+//;
+        }
+
+        my $is_my_leak;
+        my @stack;
+        while ($line = <$handle>) {
+            last if $line eq "}\n";
+            chomp $line;
+            $line =~ s/^\s+//;
+
+            # Split the frame "fun:Perl_pp_entersub" into $type ("fun") and $name ("Perl_pp_entersub")
+            my ($type, $name) = split /:/, $line;
+            next if $type eq 'obj';
+
+            # Check if the stack trace is reporting one of our errors
+            $is_my_leak ||= $name =~ /$match_regexp/;
+
+            my $frame = {
+                type => $type,
+                name => $name,
+            };
+            push @stack, $frame;
+        }
+
+        # Read the next line if this stack trace is not our fault
+        if ($is_my_leak) {
+            print @warnings;
+            if (0) {
+                print "$message\n";
+                print "$valgrind_check\n";
+                foreach my $frame (@stack) {
+                    print "$frame->{type}:$frame->{name}\n";
+                }
+            }
+            print "\n";
+        }
+
+        @warnings = ();
+    }
+}
+
+
+sub exec_valgrind {
+    my ($handle, @command) = @_;
+
+    # Child process
+    unshift @command, qw(
+        valgrind
+            --gen-suppressions=all
+            --show-reachable=yes
+            --leak-check=full
+            --track-origins=yes
+    );
+
+    open STDOUT, '>&', $handle or die "Can't dup STDOUT into a pipe: $!";
+    open STDERR, '>&', $handle or die "Can't dup STDERR into a pipe: $!";
+    exec(@command) or die "Can't execute @command: $!";
+}
+
+
+exit main() unless caller;
