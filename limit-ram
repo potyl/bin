@@ -9,6 +9,10 @@ memory="$1"
 shift
 
 case "$memory" in 
+	*G|*g)
+		memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 '*' 1024 )
+	;;
+
 	*M|*m)
 		memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 )
 	;;
