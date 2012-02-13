@@ -1,31 +1,31 @@
 #!/bin/bash
 
 if [ $# -lt 2 ] ; then
-	echo "Usage: megs command [args]..."
-	exit 1
+    echo "Usage: megs command [args]..."
+    exit 1
 fi
 
 memory="$1"
 shift
 
-case "$memory" in 
-	*G|*g)
-		memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 '*' 1024 )
-	;;
+case "$memory" in
+    *G|*g)
+        memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 '*' 1024 )
+    ;;
 
-	*M|*m)
-		memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 )
-	;;
+    *M|*m)
+        memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 )
+    ;;
 
-	*K|*k)
-		memory=$( expr "$memory" : '\([0-9]*\)' )
-	;;
+    *K|*k)
+        memory=$( expr "$memory" : '\([0-9]*\)' )
+    ;;
 
-	*)
-		echo "Specify units in M or K"
-		exit 1;
-	;;
-	
+    *)
+        echo "Specify units in M or K"
+        exit 1;
+    ;;
+
 esac
 
 # Set the memory limit for the process
