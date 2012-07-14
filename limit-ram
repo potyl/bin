@@ -10,15 +10,15 @@ shift
 
 case "$memory" in
     *G|*g)
-        memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 '*' 1024 )
+        memory=$( expr substr "$memory" 1 '(' "$memory" : '[0-9]*' ')' '*' 1024 '*' 1024)
     ;;
 
     *M|*m)
-        memory=$( expr "$memory" : '\([0-9]*\)' '*' 1024 )
+        memory=$( expr substr "$memory" 1 '(' "$memory" : '[0-9]*' ')' '*' 1024 )
     ;;
 
     *K|*k)
-        memory=$( expr "$memory" : '\([0-9]*\)' )
+        memory=$( expr substr "$memory" 1 '(' "$memory" : '[0-9]*' ')' )
     ;;
 
     *)
