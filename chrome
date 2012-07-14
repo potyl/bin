@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if [ ! \( -L "$HOME/.cache/google-chrome" -a -d "$HOME/.cache/google-chrome" \) ] ; then
+    rm -rf "$HOME/.cache/google-chrome"
+    mkdir -p "/tmp/.cache-$USER/google-chrome"
+    ln -s "/tmp/.cache-$USER/google-chrome" "$HOME/.cache/google-chrome"
+fi
+
+exec /opt/google/chrome/google-chrome --proxy-auto-detect --enable-extension-timeline-api --disk-cache-dir="/tmp/.cache-$USER/chrome/" "$@"
