@@ -1,0 +1,144 @@
+#!/usr/bin/env perl
+
+=head1 NAME
+
+set-monitors - sets the monitors with xrandr
+
+=head1 SYNOPSIS
+
+	set-monitors [OPTION]... [xrand-arg]...
+
+        --above       set each display output above the previous one
+        --left-of     set each display output to the left of the previous one
+        --right-of    set each display output to the right of the previous one
+        --below       set each display output above the previous one
+        --same-as     set each display output to be the same-as the previous one
+	-n, --dry-run     print the xrand command but don't execute it
+	-h, --help        print this help message
+
+This program sets the monitors by using xrandr. The monitors are set so that
+each one is on top of each other and using the maximal resolution.
+
+=head1 DESCRIPTION
+
+Set the external monitors connected to the current device so that each monitor is
+above the previous one. The monitors are set so that each one is above the
+previous one.
+
+=cut
+
+use strict;
+use warnings;
+
+use Getopt::Long qw(:config auto_help);
+use Pod::Usage;
+use Data::Dumper;
+
+
+sub main {
+
+    my $display_property = '--above';
+    GetOptions(
+        'above'            => sub { $display_property = '--above' },
+        'left-of'          => sub { $display_property = '--left-of' },
+        'right-of'         => sub { $display_property = '--right-of' },
+        'below'            => sub { $display_property = '--below' },
+        'same-as'          => sub { $display_property = '--same-as' },
+        'n|dryrun|dry-run' => \my $dry_run,
+    ) or pod2usage(1);
+    my @args = @ARGV;
+
+    my @lines   = get_xranrd_output();
+    my @screens = parse_screens(@lines);
+    my @command = build_xrandr_command($display_property, @screens) or return 1;
+    push @command, @args;
+
+    print "@command\n";
+    if (! $dry_run) {
+        exec { $command[0] } @command or die "Failed to execute @command; $!";
+    }
+
+    return 0;
+}
+
+
+sub build_xrandr_command {
+    my ($display_property, $screen) = @_;
+
+    my @displays = @{ $screen->{displays} };
+    if (@displays < 2) {
+        print "Only 1 display detected, can't set dual screen\n";
+        return;
+    }
+
+    my @command = ('xrandr');
+    my $i = 0;
+    foreach my $display (@displays) {
+
+        my ($name, $mode) = ($display->{name}, $display->{resolutions}[0]);
+        push @command, '--output' => $name;
+
+        if ($i == 0) {
+            push @command, '--mode' => $mode;
+            push @command, '--primary';
+        }
+        else {
+            push @command, '--mode' => $mode unless $display_property eq '--same-as';
+            push @command, $display_property, $displays[$i - 1]{name};
+        }
+        ++$i;
+    }
+
+    return @command;
+}
+
+
+sub parse_screens {
+    my (@lines) = @_;
+
+    my (@screens, $screen, $display);
+    LINES:
+    while (@lines) {
+        my $line = shift @lines;
+
+        # A new screen section "Screen 0: minimum 320 x 200, current 1680 x 1850, maximum 8192 x 8192"
+        if (my ($screen_name) = $line =~ /^Screen (\d+)/) {
+            $screen = {
+                name     => $screen_name,
+                displays => [],
+            };
+            push @screens, $screen;
+        }
+        # Parsing displays "LVDS1 connected 1280x800+0+1050 (normal left inverted right x axis y axis) 286mm x 179mm"
+        # or               "VGA1 disconnected (normal left inverted right x axis y axis)"
+        elsif (my ($display_name, $status) = $line =~ /^(\S+) ((?:dis)?connected)/) {
+            next if $status eq 'disconnected';
+            $display = {
+                name        => $display_name,
+                resolutions => [],
+            };
+            push @{ $screen->{displays} }, $display;
+        }
+            # Parsing resolutions "640x480        72.8     75.0     66.7     60.0"
+        elsif (my ($resolution) = ($line =~ /^\s+(\d+x\d+)\s/)) {
+            push @{ $display->{resolutions} }, $resolution;
+        }
+    }
+
+    return @screens;
+}
+
+
+sub get_xranrd_output {
+    open my $handle, '-|', 'xrandr' or die "Can't call xrandr; $!";
+    my @lines;
+    while (my $line = <$handle>) {
+        push @lines, $line;
+    }
+    close $handle;
+
+    return @lines;
+}
+
+
+exit main() unless caller;
