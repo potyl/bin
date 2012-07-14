@@ -1,132 +1,41 @@
 #!/usr/bin/perl
 
-=head1 SYNOPSIS
-
-	--git assume that a git repository is being synchronized
-	--svn assume that a svn repository is being synchronized
-	--dir DIR the directory to synchronize
-
-=cut
-
 use strict;
 use warnings;
 
-use Cwd 'abs_path';
+use Cwd qw(abs_path getcwd);
 use File::Spec;
 use Getopt::Long;
 
-exit main();
-
 sub main {
 
-	my $src_root;
-	my $root_type;
-	GetOptions(
-		'git' => sub { $root_type = 'git'},
-		'svn' => sub { $root_type = 'svn'},
-		'root=s' => \$src_root,
-	);
+	die "Usage: server args...\n" unless @ARGV >= 2;
+	my ($server, @args) = @ARGV;
 
-	die "Usage: dest [file...]\n" unless @ARGV;
-	my ($dest_root, @files) = @ARGV;
-	@files = ('.') unless @files;
-
-	if (! defined $src_root) {
-
-		$src_root = abs_path('.') || '.';
-
-		if (! defined $root_type) {
-			$src_root = find_root($src_root);
-			#die "Provide a root folder with --root, --git or --svn";
-		}
-		elsif ($root_type eq 'git') {
-			$src_root = find_git_root($src_root);
-		}
-		elsif ($root_type eq 'svn') {
-			$src_root = find_svn_root($src_root);
-		}
-		else {
-			die "Unrecognizeable root type '$root_type'\n";
-		}
-	}
-
-
-	$src_root = abs_path($src_root) || $src_root;
-	die "Root folder $src_root doesn't exist\n" unless -d $src_root;
-	$src_root .= '/';
-
+    my $dir = abs_path(getcwd());
+    my $home = abs_path("$ENV{HOME}");
+    
 	my $regexp_root;
+    my $path;
 	{
-		my $quoted = quotemeta($src_root);
-
-		$regexp_root = qr/^ $src_root /x;
+        my $quoted = quotemeta($home);
+		my $regexp = qr/^ $quoted /x;
+        if ($dir !~ m,$regexp / (.*) ,x) {
+            die "Folder $dir is not in $home";
+        }
+        $path = $1;
 	}
 
-	my @args = ();
-	foreach my $entry (@files) {
-		my $path = abs_path($entry) || $entry;
-		die "Root folder $src_root doesn't exist\n" unless -e $src_root;
-
-		if ($path =~ s/$regexp_root//) {
-			push @args, $path;
-		}
-		else {
-			die "Can't sync $path because it doesn't belong in $src_root\n";
-		}
-	}
-
-	chdir $src_root or die "Can't go to folder $src_root";
-	my @command = ('rsync',  '--relative', '-cav', @args, $dest_root);
+    my $dest_root = "$server:$path";
+	my @command = ('rsync', '--relative', '-CcrlDv', @args, $dest_root);
 	print "@command\n";
+
 	my $exit = system(@command);
 	if ($exit != 0) {
-		warn "Failed to execute @command because $!";
+		warn "Failed to execute @command; $!";
 	}
 	return $exit >> 8;
 }
 
 
-sub find_git_root {
-	my ($path) = @_;
-	my @path = File::Spec->splitdir($path);
-
-	while (@path) {
-		pop @path;
-		my $current = File::Spec->catdir(@path, '.git');
-		return File::Spec->catdir(@path) if -d $current;
-	}
-
-	die "Can't find the git folder from $path\n";
-}
-
-
-sub find_svn_root {
-	my ($path) = @_;
-	my @path = File::Spec->splitdir($path);
-	my $svn = File::Spec->catdir(@path, '.svn');
-	die "Can't find .svn root folder from $path\n" unless -d $svn;
-
-	while (@path) {
-		my $last = pop @path;
-		my $current = File::Spec->catdir(@path, '.svn');
-		return File::Spec->catdir(@path, $last) unless -d $current;
-	}
-
-	return File::Spec->rootdir();
-}
-
-
-#
-# Scans the current folder and all the way up to the root path until a 'root'
-# folder is found. This function will try to find either a git or an svn root
-# folder.
-#
-sub find_root {
-	my ($path) = @_;
-	my @path = File::Spec->splitdir($path);
-	my $svn = File::Spec->catdir(@path, '.svn');
-	if (-d $svn) {
-		return find_svn_root($path);
-	}
-	return find_git_root($path);
-}
+exit main() unless caller;
