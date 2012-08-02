@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set-monitors
+toggle-touchpad
+toggle-touchpad
+
+# Disable the proxy
+gsettings set org.gnome.system.proxy autoconfig-url ""
