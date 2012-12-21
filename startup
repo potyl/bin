@@ -7,3 +7,6 @@ gsettings set org.gnome.system.proxy autoconfig-url ""
 
 # Set the keyboar mapping that I want
 xmodmap ~/.Xmodmap
+
+# Fix the panel
+~/Projects/gir-fun/wnck-fix-panel.pl
