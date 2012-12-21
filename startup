@@ -4,3 +4,6 @@ set-monitors
 
 # Disable the proxy
 gsettings set org.gnome.system.proxy autoconfig-url ""
+
+# Set the keyboar mapping that I want
+xmodmap ~/.Xmodmap
