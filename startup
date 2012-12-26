@@ -32,6 +32,10 @@ gsettings set org.compiz.integrated run-command-3 "['<Super>g']"
 gsettings set org.compiz.integrated command-4 thunderbird
 gsettings set org.compiz.integrated run-command-4 "['<Super>m']"
 
+# Toggle touchpad
+gsettings set org.compiz.integrated command-5 /home/erodriguez/bin/toggle-touchpad
+gsettings set org.compiz.integrated run-command-5 "['<Super>t']"
+
 
 # Workspace shortcuts
 gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-left  "['<Super>Left']"
