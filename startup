@@ -36,6 +36,10 @@ gsettings set org.compiz.integrated run-command-4 "['<Super>m']"
 gsettings set org.compiz.integrated command-5 /home/erodriguez/bin/toggle-touchpad
 gsettings set org.compiz.integrated run-command-5 "['<Super>t']"
 
+# Screenshot
+gsettings set org.compiz.integrated command-6 'gnome-screenshot --interactive'
+gsettings set org.compiz.integrated run-command-6 "['<Alt><Super>p']"
+
 
 # Workspace shortcuts
 gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-left  "['<Super>Left']"
