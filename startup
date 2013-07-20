@@ -40,6 +40,18 @@ gsettings set org.compiz.integrated run-command-5 "['<Super>t']"
 gsettings set org.compiz.integrated command-6 'gnome-screenshot --interactive'
 gsettings set org.compiz.integrated run-command-6 "['<Alt><Super>p']"
 
+# Lock screen
+gsettings set org.compiz.integrated command-7 'gnome-screensaver-command -l'
+gsettings set org.compiz.integrated run-command-7 "['<Super>l']"
+
+# Terminal
+gsettings set org.compiz.integrated command-8 gnome-terminal
+gsettings set org.compiz.integrated run-command-8 "['<Super>slash']"
+
+# Calculator
+gsettings set org.compiz.integrated command-8 gnome-calculator
+gsettings set org.compiz.integrated run-command-8 "['<Super>c']"
+
 
 # Workspace shortcuts
 gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-left  "['<Super>Left']"
