@@ -3,6 +3,9 @@
 # Configure the dual display
 set-monitors
 
+# Disable the touch pad
+toggle-touchpad
+
 # Disable the proxy
 gsettings set org.gnome.system.proxy autoconfig-url ""
 
