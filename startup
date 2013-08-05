@@ -66,4 +66,4 @@ gsettings set org.gnome.desktop.wm.keybindings move-to-workspace-down  "['<Contr
 
 
 # Set the proper plugin order. Make expo the last so that it doens't lose it's key bindings
-dconf write /org/compiz/profiles/Default/plugins/core/active-plugins "['core', 'composite', 'opengl', 'decor', 'compiztoolbox', 'shift', 'commands', 'mousepoll', 'snap', 'regex', 'titleinfo', 'imgpng', 'wall', 'place', 'session', 'resize', 'move', 'animation', 'workarounds', 'fade', 'scale', 'expo']"
+#dconf write /org/compiz/profiles/Default/plugins/core/active-plugins "['core', 'composite', 'opengl', 'decor', 'compiztoolbox', 'shift', 'commands', 'mousepoll', 'snap', 'regex', 'titleinfo', 'imgpng', 'wall', 'place', 'session', 'resize', 'move', 'animation', 'workarounds', 'fade', 'scale', 'expo']"
