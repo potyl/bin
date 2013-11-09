@@ -41,7 +41,7 @@ gsettings set org.compiz.integrated run-command-5 "['<Super>t']"
 
 # Screenshot
 gsettings set org.compiz.integrated command-6 'gnome-screenshot --interactive'
-gsettings set org.compiz.integrated run-command-6 "['<Super>p']"
+gsettings set org.compiz.integrated run-command-6 "['<Super><Alt>p']"
 
 # Lock screen
 gsettings set org.compiz.integrated command-7 'gnome-screensaver-command -l'
