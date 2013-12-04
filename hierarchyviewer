@@ -1,0 +1,5 @@
+#!/bin/bash
+
+
+export PATH="/home/erodriguez/java/java/bin:$PATH"
+/home/erodriguez/android/tools/hierarchyviewer
