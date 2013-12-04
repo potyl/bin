@@ -24,7 +24,7 @@ gsettings set org.compiz.integrated command-1 nedit
 gsettings set org.compiz.integrated run-command-1 "['<Super>n']"
 
 # Shortcut to hierarchyviewer
-gsettings set org.compiz.integrated command-2 /home/erodriguez/android/tools/hierarchyviewer
+gsettings set org.compiz.integrated command-2 /home/erodriguez/bin/hierarchyviewer
 gsettings set org.compiz.integrated run-command-2 "['<Super>h']"
 
 # Shortcut to gedit
