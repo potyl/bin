@@ -49,5 +49,5 @@ sub is_touchpad_enabled {
 
 sub notify {
 	my (@message) = @_;
-	system('notify-send', '--icon', 'gnome-mouse', "@message");
+	system('notify-send', '--icon', 'input-mouse', "@message");
 }
